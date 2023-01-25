@@ -1,0 +1,32 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> wave;
+RWTexture2D<float4> wavep1;
+RWTexture2D<float4> wavem1;
+int2 resolution;
+float3 effect;
+float dispersion;
+
+[numthreads(8,8,1)] 
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+	float w = wave[id.xy].x;
+	float wm1 = wavem1[id.xy].x;
+	float wn = wave[id.xy + uint2(0,1)].x;
+	float ws = wave[id.xy - uint2(0,1)].x;
+	float we = wave[id.xy + uint2(1,0)].x;
+	float ww = wave[id.xy - uint2(1,0)].x;
+
+	//assuming CFL is 0.5 so CLF^2 is 0.25
+	float wp1 = 2*w - wm1 + 0.25 * (wn + ws + we + ww - 4*w);
+	//dispersion
+	wp1 = dispersion*wp1;
+
+	if (id.x == floor(effect.x) && id.y == floor(effect.y)) { wp1 = effect.z; }
+
+	wavep1[id.xy] = float4(wp1, wp1, wp1, 1);
+
+}
